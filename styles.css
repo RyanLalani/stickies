@@ -46,7 +46,7 @@ html, body {
 .note-body {
   position: absolute;
   inset: 0;
-  padding: 48px 40px 48px 40px;
+  padding: 16px 20px 20px 20px;
   overflow-y: auto;
   outline: none;
   color: var(--text-color);

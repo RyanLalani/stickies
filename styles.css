@@ -30,7 +30,8 @@ html, body {
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: transparent;
+  background: var(--note-bg);
+  transition: background 0.3s var(--ease);
 }
 
 .sheet {

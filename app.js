@@ -53,6 +53,7 @@
   const boldBtn   = document.getElementById("boldBtn");
   const italicBtn = document.getElementById("italicBtn");
   const themeBtn  = document.getElementById("themeBtn");
+  const themeColorMeta = document.getElementById("themeColorMeta");
 
   // Seed welcome text on first launch
   if (state.__new) {
@@ -84,8 +85,9 @@
     const color = COLORS.find(c => c.name === state.color) || COLORS[0];
     const font  = FONTS.find(f => f.name === state.font)   || FONTS[0];
 
-    sheet.style.setProperty("--note-bg", color.bg);
+    document.documentElement.style.setProperty("--note-bg", color.bg);
     sheet.dataset.textLight = String(color.light);
+    if (themeColorMeta) themeColorMeta.setAttribute("content", color.bg);
 
     body.style.fontFamily = font.stack;
     body.style.fontSize   = state.fontSize + "px";

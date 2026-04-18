@@ -172,6 +172,51 @@ html, body {
 .color-swatch:hover { transform: scale(1.12); }
 .color-swatch.active { border-color: var(--ui-fg); }
 
+.custom-color-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.custom-color-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border: 1px solid var(--ui-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ui-fg);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.12s var(--ease), background 0.12s var(--ease);
+  white-space: nowrap;
+  font-family: inherit;
+}
+.custom-color-btn:hover { border-color: var(--ui-border-strong); background: rgba(127,127,127,0.08); }
+.custom-color-btn.active { border-color: var(--ui-fg); background: rgba(127,127,127,0.08); }
+
+.custom-color-btn input[type="color"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.custom-color-preview {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px solid var(--ui-border);
+  display: none;
+  flex-shrink: 0;
+  transition: background 0.15s var(--ease);
+}
+.custom-color-preview.visible { display: block; }
+
 .font-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

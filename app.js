@@ -2,6 +2,16 @@
 (() => {
   const STATE_KEY = "stickies.single.v1";
 
+  // Returns true if the bg is dark enough to need light text
+  function needsLightText(hex) {
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+    // Perceived luminance (WCAG formula)
+    const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return lum < 0.45;
+  }
+
   const COLORS = [
     { name: "butter",    bg: "#fff4a3", light: false },
     { name: "peach",     bg: "#ffd3a5", light: false },
@@ -53,7 +63,10 @@
   const boldBtn   = document.getElementById("boldBtn");
   const italicBtn = document.getElementById("italicBtn");
   const themeBtn  = document.getElementById("themeBtn");
-  const themeColorMeta = document.getElementById("themeColorMeta");
+  const themeColorMeta    = document.getElementById("themeColorMeta");
+  const customColorBtn    = document.getElementById("customColorBtn");
+  const customColorInput  = document.getElementById("customColorInput");
+  const customColorPreview= document.getElementById("customColorPreview");
 
   // Seed welcome text on first launch
   if (state.__new) {
@@ -82,12 +95,20 @@
 
   // ====== APPLY STATE ======
   function apply() {
-    const color = COLORS.find(c => c.name === state.color) || COLORS[0];
-    const font  = FONTS.find(f => f.name === state.font)   || FONTS[0];
+    const preset = COLORS.find(c => c.name === state.color);
+    const bg     = preset ? preset.bg : (state.customColor || "#fff4a3");
+    const isLight = preset ? preset.light : needsLightText(bg);
+    const font   = FONTS.find(f => f.name === state.font) || FONTS[0];
 
-    document.documentElement.style.setProperty("--note-bg", color.bg);
-    sheet.dataset.textLight = String(color.light);
-    if (themeColorMeta) themeColorMeta.setAttribute("content", color.bg);
+    document.documentElement.style.setProperty("--note-bg", bg);
+    sheet.dataset.textLight = String(isLight);
+    if (themeColorMeta) themeColorMeta.setAttribute("content", bg);
+
+    // Keep custom preview swatch in sync
+    if (state.customColor) {
+      customColorPreview.style.background = state.customColor;
+      customColorPreview.classList.add("visible");
+    }
 
     body.style.fontFamily = font.stack;
     body.style.fontSize   = state.fontSize + "px";
@@ -97,9 +118,11 @@
     document.documentElement.setAttribute("data-theme", state.theme);
 
     // Active states in panel
+    const isCustom = state.color === "__custom__";
     colorGrid.querySelectorAll(".color-swatch").forEach(el => {
-      el.classList.toggle("active", el.dataset.color === state.color);
+      el.classList.toggle("active", !isCustom && el.dataset.color === state.color);
     });
+    customColorBtn.classList.toggle("active", isCustom);
     fontGrid.querySelectorAll(".font-option").forEach(el => {
       el.classList.toggle("active", el.dataset.font === state.font);
     });
@@ -118,7 +141,14 @@
       b.style.background = c.bg;
       b.dataset.color = c.name;
       b.title = c.name;
-      b.addEventListener("click", () => { state.color = c.name; apply(); save(); });
+      b.addEventListener("click", () => {
+        state.color = c.name;
+        state.customColor = null;
+        customColorPreview.classList.remove("visible");
+        customColorBtn.classList.remove("active");
+        apply();
+        save();
+      });
       colorGrid.appendChild(b);
     });
 
@@ -131,6 +161,24 @@
       b.dataset.font = f.name;
       b.addEventListener("click", () => { state.font = f.name; apply(); save(); });
       fontGrid.appendChild(b);
+    });
+
+    // Custom color picker
+    customColorBtn.addEventListener("click", () => {
+      if (state.customColor) customColorInput.value = state.customColor;
+      customColorInput.click();
+    });
+    customColorInput.addEventListener("input", () => {
+      state.customColor = customColorInput.value;
+      state.color = "__custom__"; // deselects all presets
+      apply();
+      save();
+    });
+    customColorInput.addEventListener("change", () => {
+      state.customColor = customColorInput.value;
+      state.color = "__custom__";
+      apply();
+      save();
     });
 
     // Size

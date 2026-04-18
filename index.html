@@ -23,51 +23,49 @@
     </button>
 
     <div class="panel" id="panel" aria-hidden="true">
-      <div class="panel-section">
-        <div class="panel-label">Color</div>
-        <div class="color-grid" id="colorGrid"></div>
-        <div class="custom-color-row">
-          <label class="custom-color-btn" id="customColorBtn" title="Custom color">
-            <input type="color" id="customColorInput" />
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
-            Custom
-          </label>
-          <div class="custom-color-preview" id="customColorPreview"></div>
+
+      <!-- Color -->
+      <div class="panel-row">
+        <span class="panel-label">Color</span>
+        <label class="color-wheel-btn" id="colorWheelBtn" title="Pick color">
+          <input type="color" id="customColorInput" />
+          <div class="color-wheel-preview" id="colorWheelPreview"></div>
+          <svg class="wheel-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+        </label>
+      </div>
+
+      <div class="panel-divider"></div>
+
+      <!-- Font -->
+      <div class="panel-row">
+        <span class="panel-label">Font</span>
+        <div class="font-chips" id="fontGrid"></div>
+      </div>
+
+      <div class="panel-divider"></div>
+
+      <!-- Size -->
+      <div class="panel-row">
+        <span class="panel-label">Size</span>
+        <div class="size-row">
+          <input type="range" min="12" max="28" step="1" id="fontSize" />
+          <span class="size-readout" id="fontSizeValue">15</span>
         </div>
       </div>
 
       <div class="panel-divider"></div>
 
-      <div class="panel-section">
-        <div class="panel-label">Font</div>
-        <div class="font-grid" id="fontGrid"></div>
+      <!-- Controls -->
+      <div class="panel-row">
+        <button class="mini-btn" id="boldBtn" title="Bold (⌘B)"><b>B</b></button>
+        <button class="mini-btn" id="italicBtn" title="Italic (⌘I)"><i>I</i></button>
+        <div class="mini-spacer"></div>
+        <button class="mini-btn" id="themeBtn" title="Toggle theme">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-moon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
       </div>
 
-      <div class="panel-divider"></div>
-
-      <div class="panel-section">
-        <div class="panel-row">
-          <div class="panel-label compact">Size</div>
-          <div class="size-row">
-            <input type="range" min="12" max="28" step="1" id="fontSize" />
-            <span class="size-readout" id="fontSizeValue">15</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="panel-divider"></div>
-
-      <div class="panel-section">
-        <div class="panel-row controls-row">
-          <button class="mini-btn" id="boldBtn" title="Bold (⌘B)"><b>B</b></button>
-          <button class="mini-btn" id="italicBtn" title="Italic (⌘I)"><i>I</i></button>
-          <div class="mini-spacer"></div>
-          <button class="mini-btn" id="themeBtn" title="Toggle theme">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-moon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-          </button>
-        </div>
-      </div>
     </div>
   </main>
 

@@ -7,29 +7,9 @@
     const r = parseInt(hex.slice(1, 3), 16) / 255;
     const g = parseInt(hex.slice(3, 5), 16) / 255;
     const b = parseInt(hex.slice(5, 7), 16) / 255;
-    // Perceived luminance (WCAG formula)
     const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
     return lum < 0.45;
   }
-
-  const COLORS = [
-    { name: "butter",    bg: "#fff4a3", light: false },
-    { name: "peach",     bg: "#ffd3a5", light: false },
-    { name: "rose",      bg: "#ffc1c1", light: false },
-    { name: "lilac",     bg: "#dcc5ff", light: false },
-    { name: "sky",       bg: "#bfe2ff", light: false },
-    { name: "mint",      bg: "#c1f0d4", light: false },
-    { name: "sand",      bg: "#f1e7d0", light: false },
-    { name: "paper",     bg: "#ffffff", light: false },
-    { name: "coral",     bg: "#ff7a70", light: true  },
-    { name: "tangerine", bg: "#ff9f43", light: false },
-    { name: "amber",     bg: "#f5c518", light: false },
-    { name: "emerald",   bg: "#2ecc71", light: true  },
-    { name: "ocean",     bg: "#3498db", light: true  },
-    { name: "violet",    bg: "#8b5cf6", light: true  },
-    { name: "graphite",  bg: "#2d2d2d", light: true  },
-    { name: "ink",       bg: "#0a0a0a", light: true  },
-  ];
 
   const FONTS = [
     { name: "Sans",  stack: '"Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif' },
@@ -40,7 +20,7 @@
 
   const defaults = {
     text: "",
-    color: "butter",
+    customColor: "#fff4a3",
     font: "Sans",
     fontSize: 15,
     bold: false,
@@ -52,25 +32,24 @@
   let saveTimer = null;
   let panelOpen = false;
 
-  const sheet     = document.getElementById("sheet");
-  const body      = document.getElementById("noteBody");
-  const cornerBtn = document.getElementById("cornerBtn");
-  const panel     = document.getElementById("panel");
-  const colorGrid = document.getElementById("colorGrid");
-  const fontGrid  = document.getElementById("fontGrid");
-  const sizeInput = document.getElementById("fontSize");
-  const sizeValue = document.getElementById("fontSizeValue");
-  const boldBtn   = document.getElementById("boldBtn");
-  const italicBtn = document.getElementById("italicBtn");
-  const themeBtn  = document.getElementById("themeBtn");
-  const themeColorMeta    = document.getElementById("themeColorMeta");
-  const customColorBtn    = document.getElementById("customColorBtn");
-  const customColorInput  = document.getElementById("customColorInput");
-  const customColorPreview= document.getElementById("customColorPreview");
+  const sheet          = document.getElementById("sheet");
+  const body           = document.getElementById("noteBody");
+  const cornerBtn      = document.getElementById("cornerBtn");
+  const panel          = document.getElementById("panel");
+  const fontGrid       = document.getElementById("fontGrid");
+  const sizeInput      = document.getElementById("fontSize");
+  const sizeValue      = document.getElementById("fontSizeValue");
+  const boldBtn        = document.getElementById("boldBtn");
+  const italicBtn      = document.getElementById("italicBtn");
+  const themeBtn       = document.getElementById("themeBtn");
+  const themeColorMeta = document.getElementById("themeColorMeta");
+  const colorInput     = document.getElementById("customColorInput");
+  const colorPreview   = document.getElementById("colorWheelPreview");
+  const colorWheelBtn  = document.getElementById("colorWheelBtn");
 
   // Seed welcome text on first launch
   if (state.__new) {
-    state.text = "Hi.\n\nJust one sticky note.\nHover the top-right corner for customization.\n\n⌘B bold · ⌘I italic · ⌘, open panel";
+    state.text = "Hi.\n\nJust one sticky note.\nHover the top-right corner to customize.\n\n⌘B bold · ⌘I italic · ⌘, open panel";
     delete state.__new;
   }
 
@@ -82,10 +61,22 @@
   function loadState() {
     try {
       const s = JSON.parse(localStorage.getItem(STATE_KEY));
-      if (s) return Object.assign({}, defaults, s);
+      if (s) {
+        // Migrate from old preset-based color system
+        if (s.color && s.color !== "__custom__") {
+          const presetMap = { butter:"#fff4a3", peach:"#ffd3a5", rose:"#ffc1c1", lilac:"#dcc5ff",
+            sky:"#bfe2ff", mint:"#c1f0d4", sand:"#f1e7d0", paper:"#ffffff", coral:"#ff7a70",
+            tangerine:"#ff9f43", amber:"#f5c518", emerald:"#2ecc71", ocean:"#3498db",
+            violet:"#8b5cf6", graphite:"#2d2d2d", ink:"#0a0a0a" };
+          s.customColor = presetMap[s.color] || "#fff4a3";
+          delete s.color;
+        }
+        return Object.assign({}, defaults, s);
+      }
     } catch {}
     return Object.assign({}, defaults, { __new: true });
   }
+
   function save() {
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
@@ -95,20 +86,16 @@
 
   // ====== APPLY STATE ======
   function apply() {
-    const preset = COLORS.find(c => c.name === state.color);
-    const bg     = preset ? preset.bg : (state.customColor || "#fff4a3");
-    const isLight = preset ? preset.light : needsLightText(bg);
-    const font   = FONTS.find(f => f.name === state.font) || FONTS[0];
+    const bg = state.customColor || "#fff4a3";
+    const font = FONTS.find(f => f.name === state.font) || FONTS[0];
 
     document.documentElement.style.setProperty("--note-bg", bg);
-    sheet.dataset.textLight = String(isLight);
+    sheet.dataset.textLight = String(needsLightText(bg));
     if (themeColorMeta) themeColorMeta.setAttribute("content", bg);
 
-    // Keep custom preview swatch in sync
-    if (state.customColor) {
-      customColorPreview.style.background = state.customColor;
-      customColorPreview.classList.add("visible");
-    }
+    // Color preview swatch always shows current color
+    colorPreview.style.background = bg;
+    colorInput.value = bg;
 
     body.style.fontFamily = font.stack;
     body.style.fontSize   = state.fontSize + "px";
@@ -117,13 +104,8 @@
 
     document.documentElement.setAttribute("data-theme", state.theme);
 
-    // Active states in panel
-    const isCustom = state.color === "__custom__";
-    colorGrid.querySelectorAll(".color-swatch").forEach(el => {
-      el.classList.toggle("active", !isCustom && el.dataset.color === state.color);
-    });
-    customColorBtn.classList.toggle("active", isCustom);
-    fontGrid.querySelectorAll(".font-option").forEach(el => {
+    // Sync panel controls
+    fontGrid.querySelectorAll(".font-chip").forEach(el => {
       el.classList.toggle("active", el.dataset.font === state.font);
     });
     sizeInput.value = state.fontSize;
@@ -134,28 +116,10 @@
 
   // ====== BUILD UI ======
   function initUI() {
-    // Colors
-    COLORS.forEach(c => {
-      const b = document.createElement("button");
-      b.className = "color-swatch";
-      b.style.background = c.bg;
-      b.dataset.color = c.name;
-      b.title = c.name;
-      b.addEventListener("click", () => {
-        state.color = c.name;
-        state.customColor = null;
-        customColorPreview.classList.remove("visible");
-        customColorBtn.classList.remove("active");
-        apply();
-        save();
-      });
-      colorGrid.appendChild(b);
-    });
-
-    // Fonts
+    // Font chips
     FONTS.forEach(f => {
       const b = document.createElement("button");
-      b.className = "font-option";
+      b.className = "font-chip";
       b.textContent = f.name;
       b.style.fontFamily = f.stack;
       b.dataset.font = f.name;
@@ -163,20 +127,10 @@
       fontGrid.appendChild(b);
     });
 
-    // Custom color picker
-    customColorBtn.addEventListener("click", () => {
-      if (state.customColor) customColorInput.value = state.customColor;
-      customColorInput.click();
-    });
-    customColorInput.addEventListener("input", () => {
-      state.customColor = customColorInput.value;
-      state.color = "__custom__"; // deselects all presets
-      apply();
-      save();
-    });
-    customColorInput.addEventListener("change", () => {
-      state.customColor = customColorInput.value;
-      state.color = "__custom__";
+    // Color wheel — open picker on click, update live on drag
+    colorWheelBtn.addEventListener("click", () => colorInput.click());
+    colorInput.addEventListener("input", () => {
+      state.customColor = colorInput.value;
       apply();
       save();
     });
@@ -228,7 +182,7 @@
       if (e.key === "Escape" && panelOpen) { togglePanel(false); body.focus(); }
     });
 
-    // Focus body on background click
+    // Click bare sheet area → focus text
     sheet.addEventListener("mousedown", (e) => {
       if (e.target === sheet) body.focus();
     });

@@ -2,7 +2,6 @@
 (() => {
   const STATE_KEY = "stickies.single.v1";
 
-  // Returns true if the bg is dark enough to need light text
   function needsLightText(hex) {
     const r = parseInt(hex.slice(1, 3), 16) / 255;
     const g = parseInt(hex.slice(3, 5), 16) / 255;
@@ -19,12 +18,10 @@
   ];
 
   const defaults = {
-    text: "",
+    html: "",
     customColor: "#fff4a3",
     font: "Sans",
     fontSize: 15,
-    bold: false,
-    italic: false,
     theme: window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light",
   };
 
@@ -47,34 +44,37 @@
   const colorPreview   = document.getElementById("colorWheelPreview");
   const colorWheelBtn  = document.getElementById("colorWheelBtn");
 
-  // Seed welcome text on first launch
-  if (state.__new) {
-    state.text = "Hi.\n\nJust one sticky note.\nHover the top-right corner to customize.\n\n⌘B bold · ⌘I italic · ⌘, open panel";
-    delete state.__new;
-  }
-
-  initUI();
-  apply();
-  body.textContent = state.text;
-
   // ====== STATE ======
   function loadState() {
     try {
       const s = JSON.parse(localStorage.getItem(STATE_KEY));
       if (s) {
-        // Migrate from old preset-based color system
+        // Migrate preset-based color
         if (s.color && s.color !== "__custom__") {
-          const presetMap = { butter:"#fff4a3", peach:"#ffd3a5", rose:"#ffc1c1", lilac:"#dcc5ff",
+          const map = { butter:"#fff4a3", peach:"#ffd3a5", rose:"#ffc1c1", lilac:"#dcc5ff",
             sky:"#bfe2ff", mint:"#c1f0d4", sand:"#f1e7d0", paper:"#ffffff", coral:"#ff7a70",
             tangerine:"#ff9f43", amber:"#f5c518", emerald:"#2ecc71", ocean:"#3498db",
             violet:"#8b5cf6", graphite:"#2d2d2d", ink:"#0a0a0a" };
-          s.customColor = presetMap[s.color] || "#fff4a3";
+          s.customColor = map[s.color] || "#fff4a3";
           delete s.color;
+        }
+        // Migrate plain text → html
+        if (s.text !== undefined && s.html === undefined) {
+          s.html = escapeHtml(s.text).replace(/\n/g, "<br>");
+          delete s.text;
+          delete s.bold;
+          delete s.italic;
         }
         return Object.assign({}, defaults, s);
       }
     } catch {}
-    return Object.assign({}, defaults, { __new: true });
+    return Object.assign({}, defaults, {
+      html: "Hi.<br><br>Just start typing.<br><br>Select text, then use <b>⌘B</b> bold · <i>⌘I</i> italic · <b>⌘K</b> add link<br>⌘+click a link to open it",
+    });
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   }
 
   function save() {
@@ -86,21 +86,18 @@
 
   // ====== APPLY STATE ======
   function apply() {
-    const bg = state.customColor || "#fff4a3";
+    const bg   = state.customColor || "#fff4a3";
     const font = FONTS.find(f => f.name === state.font) || FONTS[0];
 
     document.documentElement.style.setProperty("--note-bg", bg);
     sheet.dataset.textLight = String(needsLightText(bg));
     if (themeColorMeta) themeColorMeta.setAttribute("content", bg);
 
-    // Color preview swatch always shows current color
     colorPreview.style.background = bg;
     colorInput.value = bg;
 
     body.style.fontFamily = font.stack;
     body.style.fontSize   = state.fontSize + "px";
-    body.style.fontWeight = state.bold ? "600" : "400";
-    body.style.fontStyle  = state.italic ? "italic" : "normal";
 
     document.documentElement.setAttribute("data-theme", state.theme);
 
@@ -110,12 +107,37 @@
     });
     sizeInput.value = state.fontSize;
     sizeValue.textContent = state.fontSize;
-    boldBtn.classList.toggle("active", state.bold);
-    italicBtn.classList.toggle("active", state.italic);
+    updateFormatState();
+  }
+
+  // Track bold/italic state from current selection
+  function updateFormatState() {
+    boldBtn.classList.toggle("active", document.queryCommandState("bold"));
+    italicBtn.classList.toggle("active", document.queryCommandState("italic"));
+  }
+
+  // ====== LINK DIALOG ======
+  function promptLink() {
+    const sel = window.getSelection();
+    const hasSelection = sel && !sel.isCollapsed;
+    const url = window.prompt("Link URL:", "https://");
+    if (!url || url === "https://") return;
+    body.focus();
+    if (hasSelection) {
+      document.execCommand("createLink", false, url);
+    } else {
+      document.execCommand("insertHTML", false,
+        `<a href="${escapeHtml(url)}">${escapeHtml(url)}</a>`);
+    }
+    state.html = body.innerHTML;
+    save();
   }
 
   // ====== BUILD UI ======
   function initUI() {
+    // Restore content
+    body.innerHTML = state.html;
+
     // Font chips
     FONTS.forEach(f => {
       const b = document.createElement("button");
@@ -127,7 +149,7 @@
       fontGrid.appendChild(b);
     });
 
-    // Color wheel — open picker on click, update live on drag
+    // Color wheel
     colorWheelBtn.addEventListener("click", () => colorInput.click());
     colorInput.addEventListener("input", () => {
       state.customColor = colorInput.value;
@@ -143,9 +165,21 @@
       save();
     });
 
-    // Bold / italic
-    boldBtn.addEventListener("click", () => { state.bold = !state.bold; apply(); save(); });
-    italicBtn.addEventListener("click", () => { state.italic = !state.italic; apply(); save(); });
+    // Bold / italic — execCommand applies only to current selection
+    boldBtn.addEventListener("click", () => {
+      document.execCommand("bold");
+      body.focus();
+      state.html = body.innerHTML;
+      updateFormatState();
+      save();
+    });
+    italicBtn.addEventListener("click", () => {
+      document.execCommand("italic");
+      body.focus();
+      state.html = body.innerHTML;
+      updateFormatState();
+      save();
+    });
 
     // Theme
     themeBtn.addEventListener("click", () => {
@@ -154,16 +188,40 @@
       save();
     });
 
+    // Save on every keystroke
+    body.addEventListener("input", () => {
+      state.html = body.innerHTML;
+      save();
+    });
+
+    // Update B/I button states when selection changes
+    document.addEventListener("selectionchange", () => {
+      if (document.activeElement === body) updateFormatState();
+    });
+
+    // ⌘+click opens links
+    body.addEventListener("click", (e) => {
+      const link = e.target.closest("a");
+      if (link && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        window.open(link.href, "_blank");
+      }
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener("keydown", (e) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key === "b") { e.preventDefault(); boldBtn.click(); }
+      if (mod && e.key === "i") { e.preventDefault(); italicBtn.click(); }
+      if (mod && e.key === "k") { e.preventDefault(); promptLink(); }
+      if (mod && e.key === ",") { e.preventDefault(); togglePanel(); }
+      if (e.key === "Escape" && panelOpen) { togglePanel(false); body.focus(); }
+    });
+
     // Corner button
     cornerBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       togglePanel();
-    });
-
-    // Body typing
-    body.addEventListener("input", () => {
-      state.text = body.innerText;
-      save();
     });
 
     // Click outside panel closes it
@@ -173,16 +231,7 @@
       togglePanel(false);
     });
 
-    // Keyboard shortcuts
-    document.addEventListener("keydown", (e) => {
-      const mod = e.metaKey || e.ctrlKey;
-      if (mod && e.key === "b") { e.preventDefault(); state.bold = !state.bold; apply(); save(); }
-      if (mod && e.key === "i") { e.preventDefault(); state.italic = !state.italic; apply(); save(); }
-      if (mod && e.key === ",") { e.preventDefault(); togglePanel(); }
-      if (e.key === "Escape" && panelOpen) { togglePanel(false); body.focus(); }
-    });
-
-    // Click bare sheet area → focus text
+    // Click bare sheet → focus body
     sheet.addEventListener("mousedown", (e) => {
       if (e.target === sheet) body.focus();
     });
@@ -195,7 +244,10 @@
     if (!panelOpen) body.focus();
   }
 
-  // Flush on unload
+  // Init
+  initUI();
+  apply();
+
   window.addEventListener("beforeunload", () => {
     if (saveTimer) {
       clearTimeout(saveTimer);
